@@ -1,3 +1,5 @@
+import java.awt.Component;
+import java.awt.Container;
 import java.awt.EventQueue;
 
 import javax.swing.JFrame;
@@ -52,153 +54,101 @@ public class editCourseView {
 	public editCourseView() {
 		initialize();
 	}
+	
+	private void setBoundary(int x, int y, int width, int height, Object obj, Panel panel) {
+		
+		((Component) obj).setFont(new Font("Tahoma", Font.PLAIN, 20));
+		((Component) obj).setBounds(x, y, width, height);
+		panel.add((Component) obj);
+		
+		if (obj instanceof JTextField) {
+			((JTextField) obj).setColumns(40);
+		} else if (obj instanceof JList) {
+			((JList<String>) obj).setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+		}
+	}
 
 	/**
 	 * Initialize the contents of the frame.
 	 */
 	private void initialize() {
 
-		DefaultListModel<String> listModel = new DefaultListModel<String>();
-		
-		Connection conn = mySql();
-		try {
+		// MySql Connection
+		boolean isConnected = courseData.connectMySql();
 
-			java.sql.Statement stmt = conn.createStatement();
-			java.sql.ResultSet rs = stmt.executeQuery("select * from course");
-			while (rs.next()) {
-				listModel.addElement(rs.getString("courseName"));
-			}
-			stmt.close();
-			rs.close();
+		// Initialize the program if the database connection is successful
+		if (isConnected) {
 
-		} catch (SQLException e1) {
-			// TODO Auto-generated catch block
-			System.out.println("ERROR: Failed to load the statement");
-		}
+			// Initialize the default list model to store the courses
+			DefaultListModel<String> listModel = new DefaultListModel<String>();
+			
+			// Get the course list and display it as a list
+			courseData.getCourseList(listModel);
 
-		// Program Frame
-		frame = new JFrame();
-		frame.getContentPane().setFont(new Font("Tahoma", Font.PLAIN, 16));
+			// Program Frame
+			frame = new JFrame();
+			frame.getContentPane().setFont(new Font("Tahoma", Font.PLAIN, 16));
+			frame.getContentPane().setLayout(null);
+			
+			Panel courseEditPanel = new Panel();
+			courseEditPanel.setBounds(0, 0, 750, 680);
+			frame.getContentPane().add(courseEditPanel);
+			courseEditPanel.setLayout(null);
 
-		// COURSE ADD UI
-		
-		JButton deleteBtn = null;
-		frame.getContentPane().setLayout(null);
-		
-		Panel courseEditPanel = new Panel();
-		courseEditPanel.setBounds(0, 0, 750, 680);
-		frame.getContentPane().add(courseEditPanel);
-		courseEditPanel.setLayout(null);
-		
-		JLabel courseNameLabel = new JLabel("Course Name");
-		courseNameLabel.setFont(new Font("Tahoma", Font.PLAIN, 20));
-		courseNameLabel.setBounds(30, 30, 150, 20);
-		courseEditPanel.add(courseNameLabel);
-		
-		courseNameText = new JTextField();
-		courseNameText.setFont(new Font("Tahoma", Font.PLAIN, 20));
-		courseNameText.setColumns(40);
-		courseNameText.setBounds(200, 30, 350, 25);
-		courseEditPanel.add(courseNameText);
-		
-		JLabel zoomLinkLabel = new JLabel("Zoom Link");
-		zoomLinkLabel.setFont(new Font("Tahoma", Font.PLAIN, 20));
-		zoomLinkLabel.setBounds(30, 70, 150, 20);
-		courseEditPanel.add(zoomLinkLabel);
-		
-		zoomLinkText = new JTextField();
-		zoomLinkText.setFont(new Font("Tahoma", Font.PLAIN, 20));
-		zoomLinkText.setColumns(40);
-		zoomLinkText.setBounds(200, 70, 350, 25);
-		courseEditPanel.add(zoomLinkText);
-		
-		JButton addButn = new JButton("Add");
-		addButn.addMouseListener(new MouseAdapter() {
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				String courseName = courseNameText.getText();
-				String zoomLink = zoomLinkText.getText();
-				String newData = "insert into course values('" + courseName + "','" + zoomLink + "')";
-				
-				try {
-					java.sql.Statement inputStmt = conn.createStatement();
-					inputStmt.executeUpdate(newData);
-					listModel.addElement(courseName);
-					inputStmt.close();
-				} catch (SQLException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
+			JLabel courseNameLabel = new JLabel("Course Name");
+			setBoundary(30, 30, 150, 20, courseNameLabel, courseEditPanel);
+
+			courseNameText = new JTextField();
+			setBoundary(200, 30, 350, 25, courseNameText, courseEditPanel);
+
+			JLabel zoomLinkLabel = new JLabel("Zoom Link");
+			setBoundary(30, 70, 150, 20, zoomLinkLabel, courseEditPanel);
+
+			zoomLinkText = new JTextField();
+			setBoundary(200, 70, 350, 25, zoomLinkText, courseEditPanel);
+
+			JButton addButn = new JButton("Add");
+			addButn.addMouseListener(new MouseAdapter() {
+				@Override
+				public void mouseClicked(MouseEvent e) {
+					String courseName = courseNameText.getText();
+					String zoomLink = zoomLinkText.getText();
+					
+					courseData.addCourseData(courseName, zoomLink, listModel);
+					
+					courseNameText.setText("");
+					zoomLinkText.setText("");
 				}
-				
-				
-			}
-		});
-		addButn.setFont(new Font("Tahoma", Font.PLAIN, 20));
-		addButn.setBounds(325, 115, 100, 25);
-		courseEditPanel.add(addButn);
-		
-		JList<String> list = new JList<String>(listModel);
-		list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-		list.setFont(new Font("Tahoma", Font.PLAIN, 20));
-		list.setBounds(200, 160, 350, 500);
-		courseEditPanel.add(list);
-		
-		JButton deleteBtn_1 = new JButton("Delete");
-		deleteBtn_1.addMouseListener(new MouseAdapter() {
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				try {
-					java.sql.Statement deleteStmt = conn.createStatement();
-					String courseName = list.getSelectedValue();
-					int index = list.getSelectedIndex();
-					deleteStmt.executeUpdate("delete from course where courseName = '" 
-												+ courseName + "'");
-					listModel.remove(index);
-					deleteStmt.close();
-				} catch (SQLException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
+			});
+
+			setBoundary(325, 115, 100, 25, addButn, courseEditPanel);
+
+			JList<String> list = new JList<String>(listModel);
+			setBoundary(200, 160, 350, 500, list, courseEditPanel);
+
+			JButton deleteBtn_1 = new JButton("Delete");
+			deleteBtn_1.addMouseListener(new MouseAdapter() {
+				@Override
+				public void mouseClicked(MouseEvent e) {
+					courseData.deleteCourseData(list.getSelectedValue(), list.getSelectedIndex(), listModel);
 				}
-			}
-		});
-		deleteBtn_1.setFont(new Font("Tahoma", Font.PLAIN, 20));
-		deleteBtn_1.setBounds(600, 160, 100, 25);
-		courseEditPanel.add(deleteBtn_1);
-		
-		JButton doneBtn = new JButton("Done");
-		doneBtn.addMouseListener(new MouseAdapter() {
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				frame.setVisible(false);
-				zoomLaunchView.main(null);
-			}
-		});
-		doneBtn.setFont(new Font("Tahoma", Font.PLAIN, 20));
-		doneBtn.setBounds(600, 70, 100, 25);
-		courseEditPanel.add(doneBtn);
-		frame.setBounds(100, 100, 763, 717);
+			});
+			setBoundary(600, 160, 100, 25, deleteBtn_1, courseEditPanel);
 
-		// Close the frame when exits
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-	}
+			JButton doneBtn = new JButton("Done");
+			doneBtn.addMouseListener(new MouseAdapter() {
+				@Override
+				public void mouseClicked(MouseEvent e) {
+					frame.setVisible(false);
+					zoomLaunchView.main(null);
+				}
+			});
+			setBoundary(600, 70, 100, 25, doneBtn, courseEditPanel);
+			
+			frame.setBounds(100, 100, 763, 717);
 
-	private Connection mySql() {
-
-		// MySql
-		Connection conn = null;
-
-		try {
-			// Load the current class and check rather it exists or not
-			Class.forName("com.mysql.cj.jdbc.Driver");
-
-			// Use the current class and connect with the database
-			conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/course","root","mysql");
-
-		} catch (ClassNotFoundException e) {
-			System.out.println("ERROR: No Driver detected");
-		} catch (Exception e) {
-			System.out.println("ERROR: Failed to connect");
+			// Close the frame when exits
+			frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		}
-		return conn;
 	}
 }
